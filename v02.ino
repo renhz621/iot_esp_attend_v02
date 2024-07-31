@@ -19,30 +19,31 @@
 //MQTT_Init：end
 
 //MQTT三元组
-#define ClientId "attend-wifi_000000000001_0_0_2024072700"
-#define Username "attend-wifi_000000000001"
-#define Password "904d60eb36b46690ae023c9ebdbcb8b6977b9ce23f6f54034cf09edc8328ce85"
+#define ClientId "attend-wifi_888888888888_0_0_2024072906"
+#define Username "attend-wifi_888888888888"
+#define Password "817b0451ff2555c0d672b57eef6f088405af3cb21faec0d1fb6a55686777f1c1"
 #define MQTT_Address "4d6d781166.st1.iotda-device.cn-north-4.myhuaweicloud.com"
 #define MQTT_Port 1883
-#define PID "attend-wifi_000000000001"
+#define PID "attend-wifi_888888888888"
 ////MQTT_Init：使用一些变量组（关联DEFINE：device_id;secret；关联变量：myclient 关联callback回调函数）连接MQTT 设备属性上报
-#define Iot_link_MQTT_Topic_Report "$oc/devices/attend-wifi_000000000001/sys/properties/report"              //测主动获取属性组
-#define Iot_link_MQTT_Topic_shadow "$oc/devices/attend-wifi_000000000001/sys/properties/set/#"               //平台的下发属性设置，即影子下发 需测试，好像不需订阅，也可使用？还是
-#define Iot_link_MQTT_Topic_request_shadow "$oc/devices/attend-wifi_000000000001/sys/shadow/get/response/#"  //设备侧主动请求影子数据，也需先订阅影子请求后的回复订阅
-#define Iot_link_MQTT_request_shadow "$oc/devices/attend-wifi_000000000001/sys/shadow/get/request_id=998"    //设备请求影子，初次上电
+#define Iot_link_MQTT_Topic_Report "$oc/devices/attend-wifi_888888888888/sys/properties/report"              //测主动获取属性组
+#define Iot_link_MQTT_Topic_shadow "$oc/devices/attend-wifi_888888888888/sys/properties/set/#"               //平台的下发属性设置，即影子下发 需测试，好像不需订阅，也可使用？还是
+#define Iot_link_MQTT_Topic_request_shadow "$oc/devices/attend-wifi_888888888888/sys/shadow/get/response/#"  //设备侧主动请求影子数据，也需先订阅影子请求后的回复订阅
+#define Iot_link_MQTT_request_shadow "$oc/devices/attend-wifi_888888888888/sys/shadow/get/request_id=998"    //设备请求影子，初次上电
 
 ////MQTT_Init：接收平台下发的命令
-#define Iot_link_MQTT_Topic_Commands "$oc/devices/attend-wifi_000000000001/sys/commands/#"
+#define Iot_link_MQTT_Topic_Commands "$oc/devices/attend-wifi_888888888888/sys/commands/#"
 ////MQTT_Init：设备响应平台的命令 没用到
-#define Iot_link_MQTT_Topic_CommandsRes "$oc/devices/attend-wifi_000000000001/sys/commands/response/request_id=987"
+#define Iot_link_MQTT_Topic_CommandsRes "$oc/devices/attend-wifi_888888888888/sys/commands/response/request_id=987"
 
 //MQTT_POST：手机MAC数据上报 body体
-#define Iot_link_Body_Format "{\"services\":[{\"service_id\":\"Provice_001\",\"properties\":{\"phone_mac_status\": {\"123456789012\":\"true\",\"003456789012\":\"false\"}}}]}"  //注意修改自己的服务ID
-
+// #define Iot_link_Body_Format "{\"services\":[{\"service_id\":\"Provice_001\",\"properties\":{\"phone_mac_status\": {\"123456789012\":\"true\",\"003456789012\":\"false\"}}}]}"  //注意修改自己的服务ID
+#define Iot_link_Body_Format "{\"services\":[{\"service_id\":\"provice01\",\"properties\":{\"phone_mac_status\": [";
 //一些MQTT订阅主题或内容；临时测试数据
 
 // #define Iot_link_Body_Format "{\"services\":[{\"service_id\":\"Provice_001\",\"Temp\":{%s" //注意修改自己的服务ID
 // {"services":[{"service_id":"Dev_data","properties":{"temp": 39}}]}
+// {"services":[{"service_id":"attend-wifi_888888888888","properties":{"phone_mac_status":[ {"phone_mac":"3447D400C6E1","status":true,"phone_mac":"745909FBA8FC","status":false,"phone_mac":"C46AB72F8FDB","status":true}]}}]}
 //设置MAC测试：
 // {
 //   "services" : [
@@ -109,9 +110,10 @@ int static_mac_size = 0;                      //动态得到实妹大小
 
 //cb： 定义一个需要上报report的body
 int mac_status[100];
-String report_mac_status_body = "";
+// String report_mac_status_body = "";
 //定义一个需要上报report的bodyEND
 
+uint8_t interval[2] = { 50, 20 };  // 创建一个的数组来存储间隔数据
 
 
 //V1 上一版本的mac名称:对应index 知道是谁
@@ -142,7 +144,7 @@ void cb(esppl_frame_info* info) {
 
 ////
 unsigned long previousMillis = 0;
-const long interval = 25000;  // 20秒
+// const long interval = 25000;  // 20秒
 
 void setup() {
   //WIFI连接成功后，
@@ -177,13 +179,13 @@ unsigned long lastStateChangeMillis = 0;
 bool parameterAState = false;  // 假设初始状态为false,loop 等 任意扫描列表；
 
 // 设置时间间隔
-const unsigned long activeInterval = 30000;   // 激活状态保持时间：50秒网络正常
-const unsigned long inactiveInterval = 60000;  // 非激活状态保持时间：6秒
+// const unsigned long activeInterval = 30000;    // 激活状态保持时间：50秒网络正常
+// const unsigned long inactiveInterval = 60000;  // 非激活状态保持时间：6秒
 void loop() {
   unsigned long currentMillis = millis();
 
   // 检查是否需要改变状态 当状态为true:6秒；为false:50秒  ；默认起步50秒
-  if (currentMillis - lastStateChangeMillis >= (parameterAState ? inactiveInterval : activeInterval)) {
+  if (currentMillis - lastStateChangeMillis >= (parameterAState ? interval[0]*1000 : interval[1]*1000)) {
     // 改变状态
     parameterAState = !parameterAState;
 
@@ -210,20 +212,22 @@ void loop() {
         esppl_set_channel(Wifi_current_channel);  //初使化前定下channel
         esppl_init(cb);
         esppl_sniffing_start();
+      }else{
+        Serial.println("状态0，无可扫，不扫描");
       }
 
     } else {
 
-      
+
       Serial.print("开始上报MQTT时间");
       Serial.println(currentMillis);
-      Serial.print("查看状态：");
+      Serial.print("查看状态MAC——size：");
       Serial.println(static_mac_size);
       wifi_promiscuous_enable(false);
       esppl_sniffing_stop();
       WIFI_reconnect();
-      if (static_mac_size != 0) { //有扫描任意才可上报信息
-      MQTT_POST();
+      if (static_mac_size != 0) {  //有扫描任意才可上报信息
+        MQTT_POST();
       }
     }
   }
@@ -327,7 +331,7 @@ void MQTT_Init() {
   Serial.printf("mqtt publish topic [%s] ok\n", Iot_link_MQTT_request_shadow);
   //测试 ，及时找回应得到数据
   delay(1000);
-   myclient.loop();  ////处理MQTT消息及保持心跳
+  myclient.loop();  ////处理MQTT消息及保持心跳
 }
 
 //MQTT_POST：手机MAC数据上报
@@ -351,26 +355,29 @@ void MQTT_POST() {
   // Iot_link_Body_Format "{\"services\":[{\"service_id\":\"Provice_001\",\"properties\":{\"phone_mac_status\": {\"123456789012\":\"true\",\"003456789012\":\"false\"}}}]}"  //注意修改自己的服务ID
   // sprintf(properties,"\"temp\":%d}}]}",data_temp);
 
-  sprintf(jsonBuf, Iot_link_Body_Format, properties);
-
-  String str_mac = "{\"services\":[{\"service_id\":\"Provice_001\",\"properties\":{\"phone_mac_status\": {";
-  for (int i = 0; i < static_mac_size; i++) {
-    str_mac += "\"";
+  // sprintf(jsonBuf, Iot_link_Body_Format, properties);
+  // [{ phone_mac: "998898878787", status: false }, { phone_mac: "888888888888", status: true }]
+  String str_mac = Iot_link_Body_Format
+    // String str_mac = "{\"services\":[{\"service_id\":\"Provice_001\",\"properties\":{\"phone_mac_status\": {";
+    //  {"services":[{"service_id":"attend-wifi_888888888888","properties":{"phone_mac_status":[ {"phone_mac":"3447D400C6E1","status":true},{"phone_mac":"745909FBA8FC","status":false},{"phone_mac":"C46AB72F8FDB","status":true}}]}}]}
+    //  {"services":[{"service_id":"attend-wifi_888888888888","properties":{"phone_mac_status":[ {"phone_mac":"3447D400C6E1","status":true},{"phone_mac":"745909FBA8FC","status":false},{"phone_mac":"C46AB72F8FDB","status":true}}],set_mac:"50/20"}}]}
+    for (int i = 0; i < static_mac_size; i++) {
+    str_mac += "{\"phone_mac\":\"";
     for (int ii = 0; ii < 6; ii++) {
       char hexStr[3];
       snprintf(hexStr, 3, "%02X", friendmac[i][ii]);  // 3包括'\0'
       str_mac += hexStr;
     }
-    str_mac += "\":";
+    str_mac += "\",\"status\":";
     if (mac_status[i]) {
-      str_mac += "true";
+      str_mac += "true}";
     } else {
-      str_mac += "false";
+      str_mac += "false}";
     }
     if (i != (static_mac_size - 1)) {
       str_mac += ",";
     } else {
-      str_mac += "}}}]}";
+      str_mac += "]}}]}";
     }
   }
 
@@ -389,7 +396,7 @@ void MQTT_POST() {
   // }
   myclient.publish(Iot_link_MQTT_Topic_Report, str_mac.c_str());
   Serial.println(Iot_link_MQTT_Topic_Report);
-    Serial.println(str_mac);
+  Serial.println(str_mac);
   Serial.println("MQTT Publish OK!");
 }
 
@@ -410,13 +417,32 @@ void callback(char* topic, byte* payload, unsigned int length) {
   myclient.publish(Iot_link_MQTT_Topic_Report, recdata.c_str());
   //解析包括可以解析主动请求的影子数据和平台下发的属性配置信息
 
-  // 接收到订阅的消息:主题为：$oc/devices/attend-wifi_000000000001/sys/properties/set/request_id=f71d8497-494d-498b-8da4-2b0602631b57
+  // 接收到订阅的消息:主题为：$oc/devices/attend-wifi_888888888888/sys/properties/set/request_id=f71d8497-494d-498b-8da4-2b0602631b57
   // 数据内容：{"services":[{"properties":{"set_mac":["5547D400C6E1","3447D400C6E1","745909FBA8FC"]},"service_id":"Provice_001"}]}
   //
-  // 接收到订阅的消息:主题为：$oc/devices/attend-wifi_000000000001/sys/shadow/get/response/request_id=998 应该是随机数或是
-  // 数据内容：{"shadow":[{"desired":{"properties":{"set01":20,"set_mac":["1547D400C6E1","3447D400C6E1","745909FBA8FC"]},"event_time":"20240720T014842Z"},"reported":{"properties":{"phone_mac_status":{"123456789012":"true"},"set_mac":["1547D400C6E1","3447D400C6E1","745909FBA8FC"],"set01":20},"event_time":"20240720T014842Z"},"version":328,"service_id":"Provice_001"}],"object_device_id":"attend-wifi_000000000001"}
+  // 接收到订阅的消息:主题为：$oc/devices/attend-wifi_888888888888/sys/shadow/get/response/request_id=998 应该是随机数或是
+  // 数据内容：{"shadow":[{"desired":{"properties":{"set01":20,"set_mac":["1547D400C6E1","3447D400C6E1","745909FBA8FC"]},"event_time":"20240720T014842Z"},"reported":{"properties":{"phone_mac_status":{"123456789012":"true"},"set_mac":["1547D400C6E1","3447D400C6E1","745909FBA8FC"],"set01":20},"event_time":"20240720T014842Z"},"version":328,"service_id":"Provice_001"}],"object_device_id":"attend-wifi_888888888888"}
   // //
   parseAndConvertMacs(recdata);
+}
+
+// 函数定义
+void splitStringIntoNumbers(const String& input, int* output) {
+  int pos = input.indexOf('/');               // 查找分隔符'/'的位置
+  if (pos != -1) {                            // 如果找到了分隔符
+    String part1 = input.substring(0, pos);   // 获取第一部分
+    String part2 = input.substring(pos + 1);  // 获取第二部分（跳过'/'）
+
+    // 将字符串转换为整数
+    output[0] = part1.toInt();
+    output[1] = part2.toInt();
+  } else {
+    // 如果没有找到分隔符，你可以在这里添加错误处理
+    // 例如，将输出数组设置为特定的错误值或打印错误消息
+    output[0] = 0;
+    output[1] = 0;
+    Serial.println("未找到分隔符'/'！");
+  }
 }
 
 //parseAndConvertMacs：MQTT初使化用回调/下行期望值数据解析给变量friendmac（关联），数据使用：LIST_SIZE；ESPPL_MAC_LEN；friendmac，static_mac_size
@@ -430,14 +456,14 @@ void parseAndConvertMacs(String json) {
     return;
   }
 
-  //这里以下是解析找最终数据
+  //这里以下是解析set_mac 字段的值（平台或应用侧属性下发）
   if (doc.containsKey("services") && doc["services"].is<JsonArray>()) {
     const JsonArray& services = doc["services"];
     if (!services.isNull() && services.size() > 0) {
       const JsonObject& firstService = services[0];
       if (!firstService.isNull()) {
         const JsonArray& macArray = firstService["properties"]["set_mac"];
-        if (!macArray.isNull()) {
+        if (!macArray.isNull() && macArray.size()!=0) {
           Serial.print("[");
           // 处理macArray,set_mac...先显示一下所有mac
           // 取macArray大小
@@ -479,26 +505,30 @@ void parseAndConvertMacs(String json) {
               Serial.println(i);
             }
           }
+        }else{
+        Serial.print(F("回调cb 扫描set_mac：数组为空。置static_mac_size = 0;"));
+        static_mac_size = 0;
         }
+
       }
     }
   }
   if (doc.containsKey("shadow") && doc["shadow"].is<JsonArray>()) {
     ////////////
-    Serial.println("1");
+    Serial.println("cb解析影子步骤1");
     const JsonArray& shadowArray = doc["shadow"];
     const JsonObject& shadowObj = shadowArray[0];
-    Serial.println("2");
+    Serial.println("cb解析影子步骤2");
     if (shadowObj.containsKey("desired") && shadowObj["desired"].is<JsonObject>()) {
-      Serial.println("3");
+      Serial.println("cb解析影子步骤3");
       JsonObject desired = shadowObj["desired"].as<JsonObject>();
       if (desired.containsKey("properties") && desired["properties"].is<JsonObject>()) {
         JsonObject propertiesDesired = desired["properties"].as<JsonObject>();
+        //
         if (propertiesDesired.containsKey("set_mac") && propertiesDesired["set_mac"].is<JsonArray>()) {
           JsonArray macArray = propertiesDesired["set_mac"].as<JsonArray>();
-
-          /////内部
           if (!macArray.isNull()) {
+              /////mac解析
             Serial.print("[");
             // 处理macArray,set_mac...先显示一下所有mac
             // 取macArray大小
@@ -542,6 +572,32 @@ void parseAndConvertMacs(String json) {
             }
           }
         }
+        //解析interval
+        if (propertiesDesired.containsKey("interval")) {
+          String intervalStr = propertiesDesired["interval"];
+
+          /////内部
+          int pos = intervalStr.indexOf('/');               // 查找分隔符'/'的位置
+          if (pos != -1) {                                  // 如果找到了分隔符
+            String part1 = intervalStr.substring(0, pos);  
+             Serial.print("interval0："); // 获取第一部分
+              Serial.println(part1);
+            String part2 = intervalStr.substring(pos + 1);  // 获取第二部分（跳过'/'）
+             Serial.print("interval1："); // 获取第一部分
+              Serial.println(part2);
+            // 将字符串转换为整数
+            interval[0] = part1.toInt();
+            interval[1] = part2.toInt();
+          } else {
+            // 恢复默认：50 / 30
+            //
+            interval[0] = 50;
+            interval[1] = 30;
+            Serial.println("未找到分隔符'/'！");
+          }
+
+        }
+        ///解析interval
       }
     }
   }
