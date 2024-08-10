@@ -137,7 +137,8 @@ void cb(esppl_frame_info* info) {
     if (maccmp(info->sourceaddr, friendmac[i]) || maccmp(info->receiveraddr, friendmac[i])) {
       //拼接要上报的BODY前，对找到的对应index置
       mac_status[i] = 1;
-      Serial.printf("\n%s is 在这里! :)", friendname[i].c_str());
+      Serial.printf("\n 第%d is 在这里! :)", i);
+      // Serial.printf("\n%s is 在这里! :)", friendname[i].c_str());
     }
   }
 }
@@ -185,7 +186,7 @@ void loop() {
   unsigned long currentMillis = millis();
 
   // 检查是否需要改变状态 当状态为true:6秒；为false:50秒  ；默认起步50秒
-  if (currentMillis - lastStateChangeMillis >= (parameterAState ? interval[0]*1000 : interval[1]*1000)) {
+  if (currentMillis - lastStateChangeMillis >= (parameterAState ? interval[0] * 1000 : interval[1] * 1000)) {
     // 改变状态
     parameterAState = !parameterAState;
 
@@ -212,7 +213,7 @@ void loop() {
         esppl_set_channel(Wifi_current_channel);  //初使化前定下channel
         esppl_init(cb);
         esppl_sniffing_start();
-      }else{
+      } else {
         Serial.println("状态0，无可扫，不扫描");
       }
 
@@ -377,7 +378,12 @@ void MQTT_POST() {
     if (i != (static_mac_size - 1)) {
       str_mac += ",";
     } else {
-      str_mac += "]}}]}";
+      //增加间隔数据
+      String combinedString = "],\"interval\":\"" + String(interval[0]) + "/" + String(interval[1]) + "\"}}]}";
+      Serial.print("组合上传的interval:");
+      Serial.println(combinedString);
+      // str_mac += "]}}]}";
+      str_mac += combinedString;
     }
   }
 
@@ -463,58 +469,65 @@ void parseAndConvertMacs(String json) {
       const JsonObject& firstService = services[0];
       if (!firstService.isNull()) {
         const JsonArray& macArray = firstService["properties"]["set_mac"];
-        if (!macArray.isNull() && macArray.size()!=0) {
-          Serial.print("[");
-          // 处理macArray,set_mac...先显示一下所有mac
-          // 取macArray大小
-          static_mac_size = macArray.size();
-          for (size_t i = 0; i < macArray.size(); i++) {
-            if (i > 0) Serial.print(", ");
-            // 这里我们简化了处理，只考虑字符串和数字
-            if (macArray[i].is<String>()) {
-              Serial.print("\"" + macArray[i].as<String>() + "\"");
-            } else if (macArray[i].is<int>() || macArray[i].is<float>() || macArray[i].is<double>()) {
-              // 注意：这里我们假设了int、float和double都可以直接转换为String
-              // 在实际应用中，你可能需要区分它们以保持精度
-              Serial.print(macArray[i].as<String>());
-            } else if (macArray[i].is<bool>()) {
-              Serial.print(macArray[i].as<bool>() ? "true" : "false");
-            }
-            // 注意：这里没有处理嵌套的JsonArray或JsonObject
-          }
-          Serial.println("]");
-          //处理macArray,set_mac...END
-          //再将其置至数组中，备用 下面有个限制大小
-          for (size_t i = 0; i < macArray.size() && i < LIST_SIZE; i++) {
-            Serial.print("大小size");
-            Serial.println(macArray.size());
-            const char* macStr = macArray[i];
-            if (strlen(macStr) == 12) {
-              // 注意：strtol需要两个字符来表示一个十六进制数，所以我们每次跳过两个字符
-              for (int ii = 0; ii < 6; ii++) {
-                // 注意：strtol需要两个字符来表示一个十六进制数，所以我们每次跳过两个字符
-                char tempStr[3];
-                tempStr[0] = macStr[ii * 2];
-                tempStr[1] = macStr[ii * 2 + 1];
-                tempStr[3] = '\0';
-                friendmac[i][ii] = (uint8_t)strtol(tempStr, NULL, 16);  // 转换为uint8_t
-              }
-            } else {
-              // 处理错误或无效的MAC地址
-              Serial.print(F("Invalid MAC format for item "));
-              Serial.println(i);
-            }
-          }
-        }else{
-        Serial.print(F("回调cb 扫描set_mac：数组为空。置static_mac_size = 0;"));
-        static_mac_size = 0;
-        }
+        // if (!macArray.isNull() && macArray.size() != 0) {
+           if (!macArray.isNull()) {
+          //应用侧有可能下发一个数据内容为空的则致0，上面那种情况是平台侧下载interval造成的，不致0：{"services":[{"properties":{"set_mac":[]},"service_id":"provice01"}]}
+          if (macArray.size() != 0) {
 
+
+            Serial.print("[");
+            // 处理macArray,set_mac...先显示一下所有mac
+            // 取macArray大小
+            static_mac_size = macArray.size();
+            for (size_t i = 0; i < macArray.size(); i++) {
+              if (i > 0) Serial.print(", ");
+              // 这里我们简化了处理，只考虑字符串和数字
+              if (macArray[i].is<String>()) {
+                Serial.print("\"" + macArray[i].as<String>() + "\"");
+              } else if (macArray[i].is<int>() || macArray[i].is<float>() || macArray[i].is<double>()) {
+                // 注意：这里我们假设了int、float和double都可以直接转换为String
+                // 在实际应用中，你可能需要区分它们以保持精度
+                Serial.print(macArray[i].as<String>());
+              } else if (macArray[i].is<bool>()) {
+                Serial.print(macArray[i].as<bool>() ? "true" : "false");
+              }
+              // 注意：这里没有处理嵌套的JsonArray或JsonObject
+            }
+            Serial.println("]");
+            //处理macArray,set_mac...END
+            //再将其置至数组中，备用 下面有个限制大小
+            for (size_t i = 0; i < macArray.size() && i < LIST_SIZE; i++) {
+              Serial.print("大小size");
+              Serial.println(macArray.size());
+              const char* macStr = macArray[i];
+              if (strlen(macStr) == 12) {
+                // 注意：strtol需要两个字符来表示一个十六进制数，所以我们每次跳过两个字符
+                for (int ii = 0; ii < 6; ii++) {
+                  // 注意：strtol需要两个字符来表示一个十六进制数，所以我们每次跳过两个字符
+                  char tempStr[3];
+                  tempStr[0] = macStr[ii * 2];
+                  tempStr[1] = macStr[ii * 2 + 1];
+                  tempStr[3] = '\0';
+                  friendmac[i][ii] = (uint8_t)strtol(tempStr, NULL, 16);  // 转换为uint8_t
+                }
+              } else {
+                // 处理错误或无效的MAC地址
+                Serial.print(F("Invalid MAC format for item "));
+                Serial.println(i);
+              }
+            }
+
+          } else {
+            //BUG 由于平台主动下发interval 属性，但又没变动set_mac 导致，下发数据中 set_mac 数据为空，暂时不处理，合并与应用侧下发interval时一并处理
+            Serial.print(F("回调cb 扫描set_mac：数组为空。置static_mac_size = 0;"));
+            static_mac_size = 0;
+          }
+        }
       }
     }
   }
   if (doc.containsKey("shadow") && doc["shadow"].is<JsonArray>()) {
-    ////////////
+    ////////////设备断电重启，在内存没有任何数据情况下，主动取影子数据，即上次正在进行的扫描数组任务表
     Serial.println("cb解析影子步骤1");
     const JsonArray& shadowArray = doc["shadow"];
     const JsonObject& shadowObj = shadowArray[0];
@@ -528,7 +541,7 @@ void parseAndConvertMacs(String json) {
         if (propertiesDesired.containsKey("set_mac") && propertiesDesired["set_mac"].is<JsonArray>()) {
           JsonArray macArray = propertiesDesired["set_mac"].as<JsonArray>();
           if (!macArray.isNull()) {
-              /////mac解析
+            /////mac解析
             Serial.print("[");
             // 处理macArray,set_mac...先显示一下所有mac
             // 取macArray大小
@@ -577,14 +590,14 @@ void parseAndConvertMacs(String json) {
           String intervalStr = propertiesDesired["interval"];
 
           /////内部
-          int pos = intervalStr.indexOf('/');               // 查找分隔符'/'的位置
-          if (pos != -1) {                                  // 如果找到了分隔符
-            String part1 = intervalStr.substring(0, pos);  
-             Serial.print("interval0："); // 获取第一部分
-              Serial.println(part1);
+          int pos = intervalStr.indexOf('/');  // 查找分隔符'/'的位置
+          if (pos != -1) {                     // 如果找到了分隔符
+            String part1 = intervalStr.substring(0, pos);
+            Serial.print("interval0：");  // 获取第一部分
+            Serial.println(part1);
             String part2 = intervalStr.substring(pos + 1);  // 获取第二部分（跳过'/'）
-             Serial.print("interval1："); // 获取第一部分
-              Serial.println(part2);
+            Serial.print("interval1：");                    // 获取第一部分
+            Serial.println(part2);
             // 将字符串转换为整数
             interval[0] = part1.toInt();
             interval[1] = part2.toInt();
@@ -595,7 +608,6 @@ void parseAndConvertMacs(String json) {
             interval[1] = 30;
             Serial.println("未找到分隔符'/'！");
           }
-
         }
         ///解析interval
       }
